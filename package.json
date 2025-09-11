@@ -1,0 +1,46 @@
+{
+  "name": "pastry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "postinstall": "node scripts/prepare.js",
+    "test:security": "PASTRY_REQUIRE_FILE_PASSWORDS=true vitest run test/security.spec.ts"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.1.5",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.0",
+    "busboy": "^1.6.0",
+    "classnames": "^2.5.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.8.0",
+    "nanoid": "^5.0.7",
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "swr": "^2.2.5",
+    "tailwind-merge": "^2.3.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/busboy": "^1.5.4",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.5",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.9",
+    "typescript": "^5.5.4",
+    "vitest": "^1.6.1"
+  }
+}
