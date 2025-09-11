@@ -46,3 +46,11 @@ reports/
 
 # Misc
 .vscode-test/
+
+# Storage directory
+storage/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
