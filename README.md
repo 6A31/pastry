@@ -107,6 +107,8 @@ Key environment variables (see `.env.example` for the full list):
 | `PASTRY_CLEANUP_TOKEN` | Bearer token required to call `/api/cleanup` manually. |
 | `PASTRY_DISABLE_SCHEDULER` | Set to `true` to disable minute cleanup (not recommended). |
 | `PASTRY_LOG_LEVEL` | Log verbosity: silent, error, warn, info, debug. |
+| `PASTRY_SCHEDULER_INTERVAL_MS` | Interval (ms) for the in‑process cleanup loop (default: 60000). |
+| `PASTRY_FORCE_SCHEDULER` | Force enable the scheduler even if disabled or in test/CI contexts. |
 
 ## Security Model
 | Control | Rationale |
@@ -130,6 +132,46 @@ Files are removed in two ways:
 2. External/manual trigger: You (or external automation) can POST to `/api/cleanup` directly. Protect this with `PASTRY_CLEANUP_TOKEN` in production so only authorized jobs (Cron, GitHub Actions, k8s CronJob) can invoke it. This means cleanup is not coupled to user traffic—your storage will still shrink even when the UI is idle.
 
 MongoDB deployments additionally expire metadata via TTL index; the scheduler still deletes the physical file.
+
+### Scheduler Configuration
+The built‑in cleanup loop is intentionally simple and idempotent. You can tune or override its behavior with these variables:
+
+| Variable | Behavior | Notes |
+|----------|----------|-------|
+| `PASTRY_SCHEDULER_INTERVAL_MS` | Sets how often the internal loop runs. | Default 60000 (60s). Use a lower value (e.g. 5000) only for tests / demos. |
+| `PASTRY_DISABLE_SCHEDULER` | Disables automatic loop entirely. | Pair with an external job calling `/api/cleanup` + token. |
+| `PASTRY_FORCE_SCHEDULER` | Forces the loop to start even when other logic (e.g. test env heuristics) would skip it. | Useful in CI integration tests to exercise lifecycle behavior. |
+
+Precedence: `PASTRY_FORCE_SCHEDULER=true` overrides `PASTRY_DISABLE_SCHEDULER=true` (force wins). If both are unset, the loop starts with the default interval.
+
+Example `.env.local` snippet:
+```
+# Run cleanup every 30s instead of 60s
+PASTRY_SCHEDULER_INTERVAL_MS=30000
+
+# (Optional) Force enable in a CI job that sets PASTRY_DISABLE_SCHEDULER elsewhere
+PASTRY_FORCE_SCHEDULER=true
+```
+
+### Multi‑Instance / Scaling Notes
+Running multiple Pastry instances (e.g. behind a load balancer) means each instance will attempt cleanup on its own interval. This is safe because:
+- Deleting an already‑deleted file is ignored.
+- Metadata removal uses primary key constraints; duplicate delete attempts are no‑ops.
+
+However, for large scale you may prefer a single external cleanup job:
+1. Set `PASTRY_DISABLE_SCHEDULER=true` on all app instances.
+2. Schedule a secure job (Cron, Cloud Scheduler, GitHub Action) that POSTs to `/api/cleanup` with the `Authorization: Bearer <PASTRY_CLEANUP_TOKEN>` header.
+
+### Operational Guidance
+- Keep intervals >= 30s in production to avoid unnecessary churn.
+- Very short intervals (< 5s) are only recommended for automated tests where fast expiry feedback matters.
+- Monitor logs at `info` or `debug` level to view each run summary.
+- If storage pressure is critical, you can temporarily lower the interval, then restore to 60s.
+
+### Security Considerations
+- Always set `PASTRY_CLEANUP_TOKEN` if the service is network‑reachable; otherwise anyone could trigger aggressive cleanup bursts.
+- The internal loop does not use the token—it calls the handler directly—so forgetting to set it will not break automatic cleanup.
+- Avoid exposing the cleanup endpoint publicly without a token even if you believe obscurity suffices.
 
 ## Roadmap
 - Chunked / resumable uploads

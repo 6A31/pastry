@@ -1,9 +1,8 @@
 import './config';
 import { log } from './log';
 // better-sqlite3 types expose a function export; use require to avoid TS construct signature complaints.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-// dynamic require to keep types loose
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+// dynamic require keeps types loose without adding build-time overhead
+// (lint rule suppressed by removing unsupported plugin-specific directives)
 const BetterSqlite3 = require('better-sqlite3') as unknown as typeof import('better-sqlite3');
 import { MongoClient, Collection } from 'mongodb';
 import { nanoid } from 'nanoid';
@@ -179,4 +178,17 @@ export async function deleteFileRecord(id: string) {
   } else if (sqlite) {
     sqlite.prepare('DELETE FROM files WHERE id = ?').run(id);
   }
+}
+
+// Lightweight listing of all stored filenames (id + storedName) for test helper endpoints
+export async function listStoredNames(): Promise<{ id: string; storedName: string }[]> {
+  await ensureDB();
+  if (mongoCol) {
+    return (await mongoCol.find({}, { projection: { id: 1, storedName: 1 } }).toArray())
+      .map(r => ({ id: r.id, storedName: r.storedName }));
+  } else if (sqlite) {
+    const rows = sqlite.prepare('SELECT id, stored_name as storedName FROM files').all() as { id: string; storedName: string }[];
+    return rows;
+  }
+  return [];
 }
