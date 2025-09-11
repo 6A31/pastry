@@ -75,8 +75,11 @@ export default function UploadPanel({ adminOnly, requireFilePw, maxSize }: Uploa
         try { const j = await resp.json(); if (j.error) msg = j.error; } catch {}
         throw new Error(msg);
       }
-      const json = await resp.json();
-      setResult(json);
+  const json = await resp.json();
+  setResult(json);
+  // Clear file selection so user cannot re-trigger accidentally
+  setSelectedFile(null);
+  if (inputRef.current) inputRef.current.value = '';
     } catch (e: any) {
       setError(e.message);
     } finally { setBusy(false); }

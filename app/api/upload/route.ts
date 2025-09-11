@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { insertFile, storageDir } from '../../../lib/db';
+import { consume, rateHeaders } from '../../../lib/rateLimit';
 import { cookies } from 'next/headers';
 import { nanoid } from 'nanoid';
 import fs from 'node:fs/promises';
@@ -33,6 +34,8 @@ export async function POST(req: NextRequest) {
   const requireFilePw = process.env.PASTRY_REQUIRE_FILE_PASSWORDS === 'true';
   const adminOnly = process.env.PASTRY_ADMIN_ONLY_UPLOADS === 'true';
   const adminPw = process.env.PASTRY_ADMIN_PASSWORD;
+  const rlLimit = Number(process.env.PASTRY_UPLOAD_RATE_LIMIT || 30); // max uploads per window
+  const rlWindow = Number(process.env.PASTRY_UPLOAD_RATE_WINDOW_MS || 60_000); // 1 minute
 
   return new Promise<NextResponse>(async (resolve) => {
     let fields: Record<string,string> = {};
@@ -46,6 +49,13 @@ export async function POST(req: NextRequest) {
       cookieStore.set('psid', sessionId, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 30 });
     }
 
+    // Rate limiting (key by IP; fallback to session)
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.ip || 'unknown';
+    const key = `upl:${ip}`;
+    const rate = consume(key, rlLimit, rlWindow);
+    if (!rate.allowed) {
+      return resolve(new NextResponse(JSON.stringify({ error: 'rate limit exceeded' }), { status: 429, headers: { 'Content-Type': 'application/json', ...rateHeaders(rate) } }));
+    }
     const bb = Busboy({ headers: Object.fromEntries(req.headers), limits: { fileSize: maxSize, files: 1 } });
 
   bb.on('file', (_name: string, fileStream: any, info: { filename: string; mimeType: string }) => {
@@ -122,7 +132,7 @@ export async function POST(req: NextRequest) {
         }
   const record = await insertFile({ originalName: fileMeta.originalName, size: fileMeta.size, mime: fileMeta.mime, expiresAt, maxDownloads, password: passwordRaw || null, ownerId: sessionId, storedName: path.basename(fileMeta.storedPath) });
         // Move file path already finalized; just return id
-        return resolve(NextResponse.json({ id: record.id, url: `/api/download/${record.id}` }));
+  return resolve(NextResponse.json({ id: record.id, url: `/api/download/${record.id}` }, { headers: rateHeaders(rate) }));
       } catch (e) {
         if (fileMeta) { try { await fs.unlink(fileMeta.storedPath); } catch {} }
         return resolve(NextResponse.json({ error: 'internal error' }, { status: 500 }));
