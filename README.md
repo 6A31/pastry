@@ -16,21 +16,21 @@
 ---
 
 ## Overview
-Pastry is a lightweight, self‑hostable “pastebin for files” designed for fast, temporary hand‑offs between devices or teammates. It purposely avoids accounts, large dependency stacks and heavy persistence logic. Files are short‑lived, constrained, and always treated as untrusted.
+Pastry is a lightweight, self-hostable "pastebin for files" designed for fast, temporary hand-offs between devices or teammates. It purposely avoids accounts, large dependency stacks and heavy persistence logic. Files are short-lived, constrained, and always treated as untrusted.
 
 Use cases:
 - Move a build artifact from a dev machine to a laptop quickly.
-- Share a screenshot or log bundle that should self‑expire.
-- Provide a one‑off download with a burn‑after‑read limit.
+- Share a screenshot or log bundle that should self-expire.
+- Provide a one-off download with a burn-after-read limit.
 
 ## Why Pastry?
 | Strength | Description |
 |----------|-------------|
 | Minimal UX | Single page drag & drop; no clutter, no marketing chrome. |
-| Security‑first defaults | Forced attachment downloads, randomized filenames, optional global password policy. |
+| Security-first defaults | Forced attachment downloads, randomized filenames, optional global password policy. |
 | Ephemeral by design | Expirations + max download counts + automatic background cleanup. |
-| Zero external build deps | SQLite (via better‑sqlite3) by default; optional MongoDB if you outgrow local storage. |
-| Simple deploy | A plain Next.js 14 app (App Router) – drop into any Node hosting target. |
+| Zero external build deps | SQLite (via better-sqlite3) by default; optional MongoDB if you outgrow local storage. |
+| Simple deploy | A plain Next.js 14 app (App Router) - drop into any Node hosting target. |
 | Extendable | Clear hooks for adding scanning, additional auth, storage backends, signing, etc. |
 
 ## Screenshots / Media
@@ -44,20 +44,20 @@ Use cases:
 Core capabilities shipped in this repository:
 
 - Drag & drop or file picker uploads
-- Per‑file controls:
+- Per-file controls:
   - Expiration presets (15m → 30d, server clamps at 30 days)
   - Optional download password (bcrypt hashed)
   - Max downloads (burn after N) or Unlimited toggle
 - Optional global policies:
   - Require password on every upload (`PASTRY_REQUIRE_FILE_PASSWORDS`)
-  - Admin‑only uploads lock (`PASTRY_ADMIN_ONLY_UPLOADS` + `PASTRY_ADMIN_PASSWORD`)
+  - Admin-only uploads lock (`PASTRY_ADMIN_ONLY_UPLOADS` + `PASTRY_ADMIN_PASSWORD`)
 - Automatic background cleanup (every minute) removing expired / exhausted files (overridable)
 - Secure download flow (POST with password if required, counters increment atomically)
-- Session‑scoped “recent uploads” (via opaque cookie `psid` – users cannot see others’ files)
-- Randomized, non‑guessable stored filenames (nanoid)
-- Strict server‑side validation (size, expiry clamp, password length, positive max downloads)
+- Session-scoped "recent uploads" (via opaque cookie `psid` - users cannot see others' files)
+- Randomized, non-guessable stored filenames (nanoid)
+- Strict server-side validation (size, expiry clamp, password length, positive max downloads)
 - Streaming downloads with attachment headers & sanitized filenames
-- Basic per‑IP upload & download rate limiting (configurable, in‑memory) with optional enumeration hiding
+- Basic per-IP upload & download rate limiting (configurable, in-memory) with optional enumeration hiding
 - Tailwind UI with accessible custom select + refined controls
 
 ## Architecture Brief
@@ -67,7 +67,7 @@ Core capabilities shipped in this repository:
 | `lib/db.ts` | Storage abstraction (SQLite or Mongo), metadata CRUD, TTL index creation (Mongo). |
 | Blob Store | Local filesystem directory (`PASTRY_STORAGE_DIR`). |
 | Session | Lightweight cookie to map recent uploads (no authentication). |
-| Cleanup | Scheduled in‑process minute interval + manual `/api/cleanup` endpoint. |
+| Cleanup | Scheduled in-process minute interval + manual `/api/cleanup` endpoint. |
 
 ## Quick Start
 ```bash
@@ -80,18 +80,18 @@ npm run dev
 ## Detailed Setup
 1. Clone repo & install deps.
 2. Copy `.env.example` to `.env.local` and customize:
-   - Set `PASTRY_ADMIN_PASSWORD` if enabling admin‑only uploads.
+  - Set `PASTRY_ADMIN_PASSWORD` if enabling admin-only uploads.
    - Adjust `PASTRY_MAX_FILE_SIZE` (bytes) for your environment.
-   - Provide `MONGODB_URI` if you’d like server‑enforced TTL cleanup of metadata (files still cleaned by scheduler).
+  - Provide `MONGODB_URI` if you'd like server-enforced TTL cleanup of metadata (files still cleaned by scheduler).
    - Optionally set `PASTRY_CLEANUP_TOKEN` to protect manual cleanup requests.
 3. Run `npm run dev` (or `npm run build && npm start` for production).
 4. Point reverse proxy / ingress at the Next.js server (ensure HTTPS if exposing publicly).
 
 ### Production Notes
 - Run behind HTTPS; passwords are posted with form data.
-- Consider isolating the storage directory on a low‑privilege volume.
+- Consider isolating the storage directory on a low-privilege volume.
 - Enable MongoDB if you need automatic metadata expiration at DB level (TTL index is created automatically).
-- Provide a process manager (systemd, PM2, docker) to ensure the in‑process cleanup interval remains active.
+- Provide a process manager (systemd, PM2, docker) to ensure the in-process cleanup interval remains active.
 
 ## Configuration
 Key environment variables (see `.env.example` for the full list):
@@ -104,11 +104,12 @@ Key environment variables (see `.env.example` for the full list):
 | `PASTRY_ADMIN_PASSWORD` | Password value required when admin lock enabled. |
 | `PASTRY_ALLOWED_MIME_REGEX` | Optional server regex to allowlist MIME types. |
 | `PASTRY_STORAGE_DIR` | Directory path for blob storage. |
+| `PASTRY_JWT_SECRET` | (Reserved/legacy) Secret for potential future signed links; presently unused. |
 | `MONGODB_URI` | Switch metadata store to Mongo (adds TTL index). |
 | `PASTRY_CLEANUP_TOKEN` | Bearer token required to call `/api/cleanup` manually. |
 | `PASTRY_DISABLE_SCHEDULER` | Set to `true` to disable minute cleanup (not recommended). |
 | `PASTRY_LOG_LEVEL` | Log verbosity: silent, error, warn, info, debug. |
-| `PASTRY_SCHEDULER_INTERVAL_MS` | Interval (ms) for the in‑process cleanup loop (default: 60000). |
+| `PASTRY_SCHEDULER_INTERVAL_MS` | Interval (ms) for the in-process cleanup loop (default: 60000). |
 | `PASTRY_FORCE_SCHEDULER` | Force enable the scheduler even if disabled or in test/CI contexts. |
 | `PASTRY_UPLOAD_RATE_LIMIT` | Max uploads allowed per IP per window. |
 | `PASTRY_UPLOAD_RATE_WINDOW_MS` | Window length for upload limiting. |
@@ -116,6 +117,8 @@ Key environment variables (see `.env.example` for the full list):
 | `PASTRY_DOWNLOAD_RATE_WINDOW_MS` | Window length for download limiting. |
 | `PASTRY_DOWNLOAD_ENUM_HIDE` | If `true`, many download failure modes return 404 to reduce enumeration signals. |
 | `CLEANUP_PURGE_DOWNLOADS_EXCEEDED` | If `true`, delete DB record immediately when max downloads reached (default keeps record until expiry). |
+
+Legacy variable names with the spelling `PATRY_*` are auto-mapped at startup and emit a deprecation warning (see `lib/config.ts`). Prefer the `PASTRY_*` forms.
 
 ## Security Model
 | Control | Rationale |
@@ -125,23 +128,26 @@ Key environment variables (see `.env.example` for the full list):
 | Expiry & max downloads | Reduce exposure window and footprint. |
 | Password hashing (bcrypt) | Avoid storing plain download secrets. |
 | Size & MIME guard | Bound resource use; optional type narrowing. |
-| Session isolation cookie | Prevent cross‑user recent listing leakage. |
+| Session isolation cookie | Prevent cross-user recent listing leakage. |
 | Cleanup loop | Frees disk and prunes stale data quickly. |
 
 ### Threat Considerations
-- Large file floods: mitigated by `PASTRY_MAX_FILE_SIZE` and per‑IP upload rate limiting (augment with upstream reverse proxy / WAF for stronger guarantees).
+- Large file floods: mitigated by `PASTRY_MAX_FILE_SIZE` and per-IP upload rate limiting (augment with upstream reverse proxy / WAF for stronger guarantees).
 - Malware: project intentionally treats all content as hostile; integrate AV / content scanning hook if required.
-- Brute forcing passwords: basic per‑IP download rate limiting + optional enumeration hiding (`PASTRY_DOWNLOAD_ENUM_HIDE=true`) reduce guess velocity & information leakage. For higher assurance, add proxy‑level global & distributed limits.
+- Brute forcing passwords: basic per-IP download rate limiting + optional enumeration hiding (`PASTRY_DOWNLOAD_ENUM_HIDE=true`) reduce guess velocity & information leakage. For higher assurance, add proxy-level global & distributed limits.
+
+### Rate Limit Defaults
+If not set explicitly, upload and download windows default to 60s. The default upload limit is 30 per 60s (`PASTRY_UPLOAD_RATE_LIMIT=30`). The default download limit is 120 per 60s (`PASTRY_DOWNLOAD_RATE_LIMIT=120`). Adjust conservatively; extremely tight windows can frustrate legitimate use.
 
 ## Cleanup & Lifecycle
 Files are removed in two ways:
 1. Automatic minute scheduler: server issues an internal POST to `/api/cleanup` every minute (unless disabled) deleting expired / exhausted files and their metadata.
-2. External/manual trigger: You (or external automation) can POST to `/api/cleanup` directly. Protect this with `PASTRY_CLEANUP_TOKEN` in production so only authorized jobs (Cron, GitHub Actions, k8s CronJob) can invoke it. This means cleanup is not coupled to user traffic—your storage will still shrink even when the UI is idle.
+2. External/manual trigger: You (or external automation) can POST to `/api/cleanup` directly. Protect this with `PASTRY_CLEANUP_TOKEN` in production so only authorized jobs (Cron, GitHub Actions, k8s CronJob) can invoke it. This means cleanup is not coupled to user traffic - your storage will still shrink even when the UI is idle.
 
 MongoDB deployments additionally expire metadata via TTL index; the scheduler still deletes the physical file.
 
 ### Scheduler Configuration
-The built‑in cleanup loop is intentionally simple and idempotent. You can tune or override its behavior with these variables:
+The built-in cleanup loop is intentionally simple and idempotent. You can tune or override its behavior with these variables:
 
 | Variable | Behavior | Notes |
 |----------|----------|-------|
@@ -160,10 +166,10 @@ PASTRY_SCHEDULER_INTERVAL_MS=30000
 PASTRY_FORCE_SCHEDULER=true
 ```
 
-### Multi‑Instance / Scaling Notes
+### Multi-Instance / Scaling Notes
 Running multiple Pastry instances (e.g. behind a load balancer) means each instance will attempt cleanup on its own interval. This is safe because:
-- Deleting an already‑deleted file is ignored.
-- Metadata removal uses primary key constraints; duplicate delete attempts are no‑ops.
+- Deleting an already-deleted file is ignored.
+- Metadata removal uses primary key constraints; duplicate delete attempts are no-ops.
 
 However, for large scale you may prefer a single external cleanup job:
 1. Set `PASTRY_DISABLE_SCHEDULER=true` on all app instances.
@@ -176,13 +182,13 @@ However, for large scale you may prefer a single external cleanup job:
 - If storage pressure is critical, you can temporarily lower the interval, then restore to 60s.
 
 ### Security Considerations
-- Always set `PASTRY_CLEANUP_TOKEN` if the service is network‑reachable; otherwise anyone could trigger aggressive cleanup bursts.
-- The internal loop does not use the token—it calls the handler directly—so forgetting to set it will not break automatic cleanup.
+- Always set `PASTRY_CLEANUP_TOKEN` if the service is network-reachable; otherwise anyone could trigger aggressive cleanup bursts.
+- The internal loop does not use the token - it calls the handler directly - so forgetting to set it will not break automatic cleanup.
 - Avoid exposing the cleanup endpoint publicly without a token even if you believe obscurity suffices.
  - Set `CLEANUP_PURGE_DOWNLOADS_EXCEEDED=false` (default) if you want clients to still receive a specific "download limit reached" response after the blob has been removed.
 
 ## Rate Limiting & Enumeration Hiding
-Pastry ships with lightweight, in‑memory (per‑process) rate limiting to slow automated abuse without adding external dependencies.
+Pastry ships with lightweight, in-memory (per-process) rate limiting to slow automated abuse without adding external dependencies.
 
 | Aspect | Upload | Download |
 |--------|--------|----------|
@@ -196,21 +202,47 @@ Because limits are in memory they apply separately to each instance; in horizont
 2. Add a shared store (Redis) or upstream gateway limits for a *hard* global cap.
 
 ### Enumeration Hiding
-Setting `PASTRY_DOWNLOAD_ENUM_HIDE=true` causes the download endpoint to reply with a generic `404` for many failure modes (expired, wrong password, over limit, rate limited) making it harder to distinguish valid IDs. This trades some user clarity for reduced information leakage—enable only if enumeration pressure is a demonstrated concern.
+Setting `PASTRY_DOWNLOAD_ENUM_HIDE=true` causes the download endpoint to reply with a generic `404` for many failure modes (expired, wrong password, over limit, rate limited) making it harder to distinguish valid IDs. This trades some user clarity for reduced information leakage - enable only if enumeration pressure is a demonstrated concern.
 
 ### Tuning Guidance
-- Keep windows >= 30s to avoid burst thrash; prefer raising limit vs. shrinking window for legitimate high‑volume use.
-- High‑throughput trusted networks can set very large limits or disable by patching the limiter.
+- Keep windows >= 30s to avoid burst thrash; prefer raising limit vs. shrinking window for legitimate high-volume use.
+- High-throughput trusted networks can set very large limits or disable by patching the limiter.
 - Observe limiter headers to adjust thresholds before users encounter 429s.
 
 ## Roadmap
 - Chunked / resumable uploads
 - Pluggable antivirus / content scanning hook
-- Signed temporary “one click” share links
+- Signed temporary "one click" share links
 - Optional S3 / object storage backend
 - Rate limiting & abuse throttling
-- Multi‑file batch uploads
+- Multi-file batch uploads
 - Progress bars + pause/resume
+
+## Testing
+Vitest integration tests exercise security, validation, lifecycle and cleanup behavior (`test/security.spec.ts`). The suite spins up ephemeral dev servers with modified environment variables to:
+
+- Verify password requirement enforcement and validation bounds (size, max downloads, expiry clamp).
+- Exercise download flows (missing/empty/incorrect password, single-use burn-after-read).
+- Confirm rate limiting headers and rejection after configured thresholds.
+- Validate cleanup scheduler behavior (including forced fast interval in tests) and manual `/api/cleanup` endpoint with token auth.
+- Test the `CLEANUP_PURGE_DOWNLOADS_EXCEEDED` toggle in both retain and purge modes.
+- Track and assert storage directory cleanliness after all tests; any orphaned files are manually removed and reported.
+
+Run tests:
+```bash
+npm run test:security
+```
+
+## Scripts
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Start Next dev server. |
+| `npm run build` | Build production bundle. |
+| `npm start` | Start production server (after build). |
+| `npm run lint` | Lint with ESLint/Next config. |
+| `npm run test:security` | Run Vitest security/integration suite. |
+
+Post-install hook (`postinstall`) runs `scripts/prepare.js` (if present) for any lightweight setup tasks.
 
 ## Contributing
 Issues & PRs welcome. Please:

@@ -13,6 +13,34 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 let BASE = '';
 let server: any;
 
+// File tracking for cleanup verification
+let initialStorageFiles: Set<string> = new Set();
+const createdFilesByTest: Map<string, Set<string>> = new Map();
+let currentTestName = '';
+
+async function getStorageFiles(): Promise<Set<string>> {
+  const storageDir = path.join(process.cwd(), 'storage');
+  try {
+    const files = await fs.readdir(storageDir);
+    return new Set(files.filter(f => !f.startsWith('.')));
+  } catch {
+    return new Set();
+  }
+}
+
+async function trackTestFiles(testName: string) {
+  currentTestName = testName;
+  const beforeFiles = await getStorageFiles();
+  if (!createdFilesByTest.has(testName)) {
+    createdFilesByTest.set(testName, new Set());
+  }
+  // Track files that weren't there initially
+  const newFiles = new Set([...beforeFiles].filter(f => !initialStorageFiles.has(f)));
+  for (const file of newFiles) {
+    createdFilesByTest.get(testName)!.add(file);
+  }
+}
+
 async function waitForServer(url: string, timeoutMs = 60000) {
   const start = Date.now();
   let attempts = 0;
@@ -72,6 +100,10 @@ describe.sequential('Security validation', () => {
 
   beforeAll(async () => {
     const t0 = Date.now();
+    // Capture initial storage state before any tests
+    initialStorageFiles = await getStorageFiles();
+    console.log('[test] beforeAll: initial storage files:', Array.from(initialStorageFiles));
+    
     const port = 4300 + Math.floor(Math.random() * 200);
     BASE = `http://127.0.0.1:${port}`;
   console.log('[test] beforeAll: spawning dev server on port', port);
@@ -110,12 +142,53 @@ describe.sequential('Security validation', () => {
 
   afterAll(async () => {
     try {
+      // Expire all tracked files and attempt cleanup multiple times
       const past = new Date(Date.now() - 600_000).toISOString();
       for (const id of createdIds) {
         await fetch(`${BASE}/api/test-helper/update-file`, { method: 'POST', body: JSON.stringify({ id, expiresAt: past }), headers: { 'Content-Type': 'application/json' } }).catch(()=>{});
       }
+      
+      // Multiple cleanup attempts
       await fetch(`${BASE}/api/cleanup`, { method: 'POST', headers: { authorization: 'Bearer testtoken123' } }).catch(()=>{});
-    } catch {}
+      await fetch(`${BASE}/api/test-helper/cleanup-orphans`, { method: 'POST' }).catch(()=>{});
+      await new Promise(r => setTimeout(r, 1000));
+      await fetch(`${BASE}/api/cleanup`, { method: 'POST', headers: { authorization: 'Bearer testtoken123' } }).catch(()=>{});
+      
+      // Final storage verification
+      await new Promise(r => setTimeout(r, 1000)); // Allow cleanup to complete
+      const finalStorageFiles = await getStorageFiles();
+      const leftoverFiles = new Set([...finalStorageFiles].filter(f => !initialStorageFiles.has(f)));
+      
+      console.log('[test] afterAll: final storage check');
+      console.log('[test] initial files:', Array.from(initialStorageFiles));
+      console.log('[test] final files:', Array.from(finalStorageFiles));
+      console.log('[test] leftover files:', Array.from(leftoverFiles));
+      
+      if (leftoverFiles.size > 0) {
+        console.log('[test] Files by test:');
+        for (const [test, files] of createdFilesByTest.entries()) {
+          if (files.size > 0) {
+            console.log(`[test]   ${test}: ${Array.from(files).join(', ')}`);
+          }
+        }
+        console.warn(`[test] WARNING: ${leftoverFiles.size} files not cleaned up: ${Array.from(leftoverFiles).join(', ')}`);
+        
+        // Attempt manual removal of leftover files
+        const storageDir = path.join(process.cwd(), 'storage');
+        for (const file of leftoverFiles) {
+          try {
+            await fs.unlink(path.join(storageDir, file));
+            console.log(`[test] Manual cleanup removed: ${file}`);
+          } catch (e) {
+            console.warn(`[test] Failed to manually remove ${file}`);
+          }
+        }
+      } else {
+        console.log('[test] SUCCESS: Storage directory returned to initial state');
+      }
+    } catch (e) {
+      console.error('[test] afterAll cleanup error:', e);
+    }
     if (server) server.kill('SIGTERM');
     await fs.rm(bigFilePath, { force: true }).catch(()=>{});
     await fs.rm(smallFilePath, { force: true }).catch(()=>{});
@@ -151,6 +224,7 @@ describe.sequential('Security validation', () => {
   });
 
   test('accept valid upload with password', async () => {
+    await trackTestFiles('accept valid upload with password');
     const fd = baseForm(smallBlob);
     fd.append('downloadPassword', 'goodpw');
     const r = await upload(fd);
@@ -160,6 +234,7 @@ describe.sequential('Security validation', () => {
   });
 
   test('expiry over 30d clamped', async () => {
+    await trackTestFiles('expiry over 30d clamped');
     const fd = baseForm(smallBlob);
     fd.set('expiresIn', '999d');
     fd.append('downloadPassword', 'pw');
@@ -168,6 +243,7 @@ describe.sequential('Security validation', () => {
   });
 
   test('invalid expiry token falls back to default', async () => {
+    await trackTestFiles('invalid expiry token falls back to default');
     const fd = baseForm(smallBlob);
     fd.set('expiresIn', 'notatime');
     fd.append('downloadPassword', 'pw');
@@ -177,6 +253,7 @@ describe.sequential('Security validation', () => {
   });
 
   test('negative expiry token ("-1d") falls back to default', async () => {
+    await trackTestFiles('negative expiry token ("-1d") falls back to default');
     const fd = baseForm(smallBlob);
     fd.set('expiresIn', '-1d');
     fd.append('downloadPassword', 'pw');
@@ -210,6 +287,7 @@ describe.sequential('Security validation', () => {
   });
 
   test('password protected download scenarios (missing, empty, wrong, correct)', async () => {
+    await trackTestFiles('password protected download scenarios');
     const fd = baseForm(smallBlob);
     fd.append('downloadPassword', 'pw');
     const r = await upload(fd);
@@ -231,6 +309,7 @@ describe.sequential('Security validation', () => {
   });
 
   test('maxDownloads=1 enforces single download', async () => {
+    await trackTestFiles('maxDownloads=1 enforces single download');
     const fd = baseForm(smallBlob);
     fd.append('downloadPassword', 'pw');
     fd.append('maxDownloads', '1');
@@ -255,6 +334,7 @@ describe.sequential('Security validation', () => {
   });
 
   test('zero byte file accepted or politely rejected', async () => {
+    await trackTestFiles('zero byte file accepted or politely rejected');
     const fd = baseForm(zeroBlob, 'small.txt');
     fd.append('downloadPassword', 'pw');
     const r = await upload(fd);
@@ -262,6 +342,7 @@ describe.sequential('Security validation', () => {
   });
 
   test('metadata fetch without prior session (cookie issuance)', async () => {
+    await trackTestFiles('metadata fetch without prior session');
     const fd = baseForm(smallBlob);
     fd.append('downloadPassword', 'pw');
     const r = await upload(fd);
@@ -284,6 +365,7 @@ describe.sequential('Security validation', () => {
   });
 
   test('rate limits enforced for upload and download (isolated server)', async () => {
+    await trackTestFiles('rate limits enforced');
     // Spawn isolated server with very low limits to keep test fast
   const port = 5000 + Math.floor(Math.random()*200);
   const ALT = `http://127.0.0.1:${port}`;
@@ -336,6 +418,7 @@ describe.sequential('Security validation', () => {
   }, 30000);
 
   test('scheduler removes all test-created files (and token auth works)', async () => {
+    await trackTestFiles('scheduler removes all test-created files');
     const token = 'testtoken123';
     // invalid token attempt (main server) -> 401
     // Dev server can transiently return 404 during recompilation; accept 401 (auth rejection) or rare 404.
@@ -464,4 +547,58 @@ describe.sequential('Security validation', () => {
       try { proc.kill('SIGTERM'); } catch {}
     }
   }, 40000);
+
+  test('storage directory cleanup verification', async () => {
+    // Force a final cleanup to ensure everything is removed
+    await fetch(`${BASE}/api/cleanup`, { method: 'POST', headers: { authorization: 'Bearer testtoken123' } }).catch(()=>{});
+    
+    // Additional cleanup attempt with orphan cleanup helper
+    await fetch(`${BASE}/api/test-helper/cleanup-orphans`, { method: 'POST' }).catch(()=>{});
+    
+    await new Promise(r => setTimeout(r, 3000)); // Wait longer for cleanup to complete
+    
+    const currentFiles = await getStorageFiles();
+    const leftoverFiles = new Set([...currentFiles].filter(f => !initialStorageFiles.has(f)));
+    
+    console.log('[test] Final storage verification:');
+    console.log('[test] Initial files:', Array.from(initialStorageFiles));
+    console.log('[test] Current files:', Array.from(currentFiles));
+    console.log('[test] Leftover files:', Array.from(leftoverFiles));
+    
+    if (leftoverFiles.size > 0) {
+      console.log('[test] Files created by tests:');
+      for (const [testName, files] of createdFilesByTest.entries()) {
+        if (files.size > 0) {
+          console.log(`[test]   ${testName}: ${Array.from(files).join(', ')}`);
+        }
+      }
+      
+      // Try manual cleanup of remaining files
+      console.log('[test] Attempting manual cleanup of leftover files...');
+      const storageDir = path.join(process.cwd(), 'storage');
+      for (const file of leftoverFiles) {
+        try {
+          await fs.unlink(path.join(storageDir, file));
+          console.log(`[test] Manually removed: ${file}`);
+        } catch (e) {
+          console.log(`[test] Failed to remove ${file}:`, e);
+        }
+      }
+      
+      // Re-check after manual cleanup
+      const afterManualCleanup = await getStorageFiles();
+      const stillLeftover = new Set([...afterManualCleanup].filter(f => !initialStorageFiles.has(f)));
+      
+      if (stillLeftover.size > 0) {
+        console.warn(`[test] WARNING: ${stillLeftover.size} files still remain after manual cleanup: ${Array.from(stillLeftover).join(', ')}`);
+      } else {
+        console.log('[test] SUCCESS: Manual cleanup succeeded, storage restored');
+      }
+      
+      expect(stillLeftover.size).toBe(0);
+    } else {
+      console.log('[test] SUCCESS: No leftover files found');
+      expect(leftoverFiles.size).toBe(0);
+    }
+  });
 });

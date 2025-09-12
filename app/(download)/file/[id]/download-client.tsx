@@ -67,7 +67,7 @@ export default function DownloadClient({ id }: { id: string }) {
     return (
       <div className="mx-auto max-w-md space-y-4 rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800 text-sm">
         <h1 className="text-lg font-semibold text-neutral-200">File Not Found</h1>
-        <p className="text-neutral-400">The file you are trying to access doesn’t exist or has already been removed.</p>
+  <p className="text-neutral-400">The file you are trying to access does not exist or has already been removed.</p>
       </div>
     );
   }
@@ -91,7 +91,7 @@ export default function DownloadClient({ id }: { id: string }) {
           </label>
         )}
         {error && <p className="text-xs text-red-500">{error}</p>}
-        <button disabled={downloading || (meta?.requiresPassword && !password)} onClick={handleDownload} className="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-40">{downloading ? 'Downloading…' : 'Download'}</button>
+  <button disabled={downloading || (meta?.requiresPassword && !password)} onClick={handleDownload} className="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-40">{downloading ? 'Downloading...' : 'Download'}</button>
       </div>
     </div>
   );

@@ -25,7 +25,7 @@ export default function RecentList() {
   return (
     <div className="space-y-4">
       <h2 className="text-sm font-semibold tracking-wide text-neutral-300">Recent Files</h2>
-      {isLoading && <p className="text-xs text-neutral-500">Loading…</p>}
+  {isLoading && <p className="text-xs text-neutral-500">Loading...</p>}
       {error && <p className="text-xs text-red-500">Failed to load</p>}
       <ul className="divide-y divide-neutral-800 rounded-md ring-1 ring-neutral-800">
         {data?.items?.length ? data.items.map(item => {

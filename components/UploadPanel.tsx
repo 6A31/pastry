@@ -45,7 +45,7 @@ export default function UploadPanel({ adminOnly, requireFilePw, maxSize }: Uploa
       setSelectedFile(null);
       const over = file.size - maxSize;
       const pct = ((file.size / maxSize) * 100).toFixed(1);
-      setSizeWarning(`File is too large (${formatBytes(file.size)} – ${pct}% of limit). Max allowed is ${formatBytes(maxSize)}.`);
+  setSizeWarning(`File is too large (${formatBytes(file.size)} - ${pct}% of limit). Max allowed is ${formatBytes(maxSize)}.`);
       return;
     }
     setSelectedFile(file);
@@ -137,7 +137,7 @@ export default function UploadPanel({ adminOnly, requireFilePw, maxSize }: Uploa
                 onClick={performUpload}
                 disabled={busy || (requireFilePw && !meta.downloadPassword) || (adminOnly && !adminPass) || !!sizeWarning || !selectedFile}
                 className="rounded-md bg-brand-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-brand-500 disabled:opacity-40"
-              >{busy ? 'Uploading…' : 'Upload'}</button>
+              >{busy ? 'Uploading...' : 'Upload'}</button>
             </div>
             <div className="space-y-1">
               {sizeWarning && <p className="text-xs text-red-400 flex items-center gap-2"><span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500" />{sizeWarning}</p>}
