@@ -153,6 +153,7 @@ export default function UploadPanel({ adminOnly, requireFilePw, maxSize }: Uploa
             disabled={busy}
             onChange={(v) => setMeta(m => ({ ...m, expiresIn: v }))}
             options={[
+              { value: '2m', label: '2 minutes' },
               { value: '15m', label: '15 minutes' },
               { value: '1h', label: '1 hour' },
               { value: '6h', label: '6 hours' },
