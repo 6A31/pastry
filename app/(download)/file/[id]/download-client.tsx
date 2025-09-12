@@ -9,6 +9,7 @@ export default function DownloadClient({ id }: { id: string }) {
   const [downloading, setDownloading] = useState(false);
   const [meta, setMeta] = useState<FileMeta | null>(null);
   const [statusCode, setStatusCode] = useState<number | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +69,9 @@ export default function DownloadClient({ id }: { id: string }) {
       <div className="mx-auto max-w-md space-y-4 rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800 text-sm">
         <h1 className="text-lg font-semibold text-neutral-200">File Not Found</h1>
   <p className="text-neutral-400">The file you are trying to access does not exist or has already been removed.</p>
+        <div className="pt-2">
+          <a href="/" className="inline-flex items-center rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-500">Upload a file</a>
+        </div>
       </div>
     );
   }
@@ -76,6 +80,9 @@ export default function DownloadClient({ id }: { id: string }) {
       <div className="mx-auto max-w-md space-y-4 rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800 text-sm">
         <h1 className="text-lg font-semibold text-neutral-200">File Expired</h1>
         <p className="text-neutral-400">This file has expired and is no longer available.</p>
+        <div className="pt-2">
+          <a href="/" className="inline-flex items-center rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-500">Upload a file</a>
+        </div>
       </div>
     );
   }
@@ -83,6 +90,10 @@ export default function DownloadClient({ id }: { id: string }) {
   return (
     <div className="mx-auto max-w-md space-y-6 rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800">
       <h1 className="text-lg font-semibold text-neutral-200">Download File</h1>
+      <div className="flex items-center justify-between -mt-2">
+        <p className="text-[11px] text-neutral-500">Provide password if required and click Download.</p>
+        <a href="/" className="rounded-md bg-neutral-800 px-2 py-1 text-[11px] font-medium text-neutral-200 ring-1 ring-neutral-700 hover:bg-neutral-700">Upload a file</a>
+      </div>
       <div className="space-y-3 text-sm">
         {meta?.requiresPassword && (
           <label className="flex flex-col gap-1 text-xs">

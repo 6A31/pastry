@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { ReactNode } from 'react';
 import { log } from '../lib/log';
+import Footer from '../components/Footer';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -50,9 +51,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
           {children}
-          <footer className="mt-16 border-t border-neutral-800 pt-6 text-center text-xs text-neutral-600">
-            <p>Pastry - Minimal drag & drop file sharing.</p>
-          </footer>
+          <Footer />
         </div>
       </body>
     </html>
