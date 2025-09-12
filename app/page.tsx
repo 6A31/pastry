@@ -1,6 +1,12 @@
 import UploadPanel from '../components/UploadPanel';
 import RecentList from '../components/RecentList';
 
+// Force dynamic rendering so environment-driven flags (admin/password requirements)
+// always reflect current runtime configuration. Without this, the page could be
+// statically optimized at build time and omit the admin password field if the
+// env was disabled then later enabled in production.
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   // Read env on the server to ensure SSR + hydration consistency
   const adminOnly = process.env.PASTRY_ADMIN_ONLY_UPLOADS === 'true';
