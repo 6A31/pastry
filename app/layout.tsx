@@ -35,7 +35,10 @@ if (typeof process !== 'undefined' && !globalThis.__pastryCleanupScheduler) {
 
 export const metadata: Metadata = {
   title: 'Pastry - Fast minimalist file drop',
-  description: 'A minimalist, drag & drop pastebin for quick, secure file sharing with expirations, passwords & download limits.'
+  description: 'A minimalist, drag & drop pastebin for quick, secure file sharing with expirations, passwords & download limits.',
+  icons: {
+    icon: '/favicon.ico'
+  }
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

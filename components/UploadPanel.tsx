@@ -296,7 +296,7 @@ export default function UploadPanel({ adminOnly, requireFilePw, maxSize }: Uploa
 
       {adminOnly && (
         <div className="rounded-md bg-neutral-900/70 backdrop-blur px-4 py-3 text-xs text-neutral-300 ring-1 ring-neutral-800 flex flex-col gap-2">
-          <p className="flex items-start gap-2 leading-snug"><LockClosedIcon className="h-4 w-4 text-brand-400 shrink-0 mt-0.5" /> <span>Uploads are restricted. Enter the admin password to enable file uploads.</span></p>
+          <p className="flex items-start gap-2 leading-snug"><LockClosedIcon className="h-4 w-4 text-brand-400 shrink-0 mt-0.5" /> <span>Uploads are restricted by the administrator. Enter the admin password to upload files.</span></p>
           <input
             type="password"
             value={adminPass}

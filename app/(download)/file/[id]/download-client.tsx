@@ -88,21 +88,27 @@ export default function DownloadClient({ id }: { id: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-6 rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800">
-      <h1 className="text-lg font-semibold text-neutral-200">Download File</h1>
-      <div className="flex items-center justify-between -mt-2">
-        <p className="text-[11px] text-neutral-500">Provide password if required and click Download.</p>
-        <a href="/" className="rounded-md bg-neutral-800 px-2 py-1 text-[11px] font-medium text-neutral-200 ring-1 ring-neutral-700 hover:bg-neutral-700">Upload a file</a>
+    <div className="mx-auto max-w-md space-y-4">
+      <div className="rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h1 className="text-lg font-semibold text-neutral-200">Download File</h1>
+            <p className="mt-1 text-[11px] text-neutral-500">{meta?.requiresPassword ? 'This file is protected.' : 'Click download to retrieve the file.'}</p>
+          </div>
+          <a href="/" className="rounded-md bg-neutral-800 px-2 py-1 text-[11px] font-medium text-neutral-200 ring-1 ring-neutral-700 hover:bg-neutral-700">Upload</a>
+        </div>
+        <div className="space-y-3 text-sm">
+          {meta?.requiresPassword && (
+            <label className="flex flex-col gap-1 text-xs">
+              <span className="uppercase tracking-wide text-neutral-400">Password</span>
+              <input value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-md bg-neutral-800 px-2 py-1 text-neutral-100 ring-1 ring-neutral-700 focus:outline-none focus:ring-brand-500" />
+            </label>
+          )}
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
       </div>
-      <div className="space-y-3 text-sm">
-        {meta?.requiresPassword && (
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="uppercase tracking-wide text-neutral-400">Password</span>
-            <input value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-md bg-neutral-800 px-2 py-1 text-neutral-100 ring-1 ring-neutral-700 focus:outline-none focus:ring-brand-500" />
-          </label>
-        )}
-        {error && <p className="text-xs text-red-500">{error}</p>}
-  <button disabled={downloading || (meta?.requiresPassword && !password)} onClick={handleDownload} className="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-40">{downloading ? 'Downloading...' : 'Download'}</button>
+      <div>
+        <button disabled={downloading || (meta?.requiresPassword && !password)} onClick={handleDownload} className="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-brand-500 disabled:opacity-40 transition-colors">{downloading ? 'Preparing download…' : 'Download File'}</button>
       </div>
     </div>
   );
