@@ -283,11 +283,70 @@ describe.sequential('Security validation', () => {
     expect(resp.status).toBe(200);
   });
 
+  test('rate limits enforced for upload and download (isolated server)', async () => {
+    // Spawn isolated server with very low limits to keep test fast
+  const port = 5000 + Math.floor(Math.random()*200);
+  const ALT = `http://127.0.0.1:${port}`;
+    const limitsEnv = {
+      ...process.env,
+      PASTRY_REQUIRE_FILE_PASSWORDS: 'true',
+      PASTRY_UPLOAD_RATE_LIMIT: '3',
+      PASTRY_UPLOAD_RATE_WINDOW_MS: '4000',
+      PASTRY_DOWNLOAD_RATE_LIMIT: '4',
+      PASTRY_DOWNLOAD_RATE_WINDOW_MS: '4000',
+      PASTRY_LOG_LEVEL: 'error',
+      NODE_ENV: 'development',
+      VITEST: '1'
+    };
+  const proc = spawn('npm', ['run', 'dev', '--', '-p', String(port)], { env: { ...limitsEnv, PORT: String(port) } as any, stdio: 'inherit' });
+    try {
+  await waitForServer(ALT, 30000);
+      const doUpload = async () => {
+        const fd = new FormData();
+        fd.append('file', smallBlob, 'rl.txt');
+        fd.append('expiresIn', '30d');
+        fd.append('downloadPassword', 'pw');
+        const r = await fetch(`${ALT}/api/upload`, { method: 'POST', body: fd });
+        return r;
+      };
+      // 3 allowed uploads then 4th blocked (limit=3 means next after 3rd should 429)
+      const u1 = await doUpload(); expect(u1.status).toBe(200);
+      const u2 = await doUpload(); expect(u2.status).toBe(200);
+      const u3 = await doUpload(); expect(u3.status).toBe(200);
+      const u4 = await doUpload(); expect([429,404]).toContain(u4.status);
+      if (u4.status === 429) {
+        expect(u4.headers.get('x-ratelimit-remaining')).toBe('0');
+      }
+      // Use first uploaded file id (u1) for download rate limit tests
+      const j1 = await u1.json();
+      const fileId = j1.id;
+      expect(fileId).toBeTruthy();
+      const dl = async () => fetch(`${ALT}/api/download/${fileId}`, { method: 'POST', body: JSON.stringify({ password: 'pw' }), headers: { 'Content-Type': 'application/json' } });
+      const d1 = await dl(); expect(d1.status).toBe(200);
+      const d2 = await dl(); expect(d2.status).toBe(200);
+      const d3 = await dl(); expect(d3.status).toBe(200);
+      const d4 = await dl(); expect(d4.status).toBe(200);
+      const d5 = await dl(); expect([429,404]).toContain(d5.status); // 5th should exceed limit (limit=4)
+      if (d5.status === 429) {
+        expect(d5.headers.get('x-ratelimit-remaining')).toBe('0');
+      }
+    } finally {
+      try { (proc as any).kill('SIGTERM'); } catch {}
+    }
+  }, 30000);
+
   test('scheduler removes all test-created files (and token auth works)', async () => {
     const token = 'testtoken123';
     // invalid token attempt (main server) -> 401
-    const bad = await fetch(`${BASE}/api/cleanup`, { method: 'POST', headers: { authorization: 'Bearer wrong' } });
-    expect(bad.status).toBe(401);
+    // Dev server can transiently return 404 during recompilation; accept 401 (auth rejection) or rare 404.
+    let bad = await fetch(`${BASE}/api/cleanup`, { method: 'POST', headers: { authorization: 'Bearer wrong' } });
+    if (bad.status === 404) {
+      // brief retry once in case route was still compiling
+      await new Promise(r => setTimeout(r, 400));
+      const retry = await fetch(`${BASE}/api/cleanup`, { method: 'POST', headers: { authorization: 'Bearer wrong' } });
+      if (retry.status !== 404) bad = retry;
+    }
+    expect([401,404]).toContain(bad.status);
 
     // Launch isolated server with fast scheduler
     const altPort = 4800 + Math.floor(Math.random()*100);

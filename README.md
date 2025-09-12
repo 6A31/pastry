@@ -57,6 +57,7 @@ Core capabilities shipped in this repository:
 - Randomized, non‑guessable stored filenames (nanoid)
 - Strict server‑side validation (size, expiry clamp, password length, positive max downloads)
 - Streaming downloads with attachment headers & sanitized filenames
+- Basic per‑IP upload & download rate limiting (configurable, in‑memory) with optional enumeration hiding
 - Tailwind UI with accessible custom select + refined controls
 
 ## Architecture Brief
@@ -109,6 +110,11 @@ Key environment variables (see `.env.example` for the full list):
 | `PASTRY_LOG_LEVEL` | Log verbosity: silent, error, warn, info, debug. |
 | `PASTRY_SCHEDULER_INTERVAL_MS` | Interval (ms) for the in‑process cleanup loop (default: 60000). |
 | `PASTRY_FORCE_SCHEDULER` | Force enable the scheduler even if disabled or in test/CI contexts. |
+| `PASTRY_UPLOAD_RATE_LIMIT` | Max uploads allowed per IP per window. |
+| `PASTRY_UPLOAD_RATE_WINDOW_MS` | Window length for upload limiting. |
+| `PASTRY_DOWNLOAD_RATE_LIMIT` | Max download attempts per IP per window. |
+| `PASTRY_DOWNLOAD_RATE_WINDOW_MS` | Window length for download limiting. |
+| `PASTRY_DOWNLOAD_ENUM_HIDE` | If `true`, many download failure modes return 404 to reduce enumeration signals. |
 
 ## Security Model
 | Control | Rationale |
@@ -122,9 +128,9 @@ Key environment variables (see `.env.example` for the full list):
 | Cleanup loop | Frees disk and prunes stale data quickly. |
 
 ### Threat Considerations
-- Large file floods: mitigate via `PASTRY_MAX_FILE_SIZE` and potential upstream rate limits.
-- Malware: project intentionally treats all content as hostile; integrate AV scanning hook if required.
-- Brute forcing passwords: rate limiting not yet implemented – consider an upstream WAF / reverse proxy rules.
+- Large file floods: mitigated by `PASTRY_MAX_FILE_SIZE` and per‑IP upload rate limiting (augment with upstream reverse proxy / WAF for stronger guarantees).
+- Malware: project intentionally treats all content as hostile; integrate AV / content scanning hook if required.
+- Brute forcing passwords: basic per‑IP download rate limiting + optional enumeration hiding (`PASTRY_DOWNLOAD_ENUM_HIDE=true`) reduce guess velocity & information leakage. For higher assurance, add proxy‑level global & distributed limits.
 
 ## Cleanup & Lifecycle
 Files are removed in two ways:
@@ -172,6 +178,28 @@ However, for large scale you may prefer a single external cleanup job:
 - Always set `PASTRY_CLEANUP_TOKEN` if the service is network‑reachable; otherwise anyone could trigger aggressive cleanup bursts.
 - The internal loop does not use the token—it calls the handler directly—so forgetting to set it will not break automatic cleanup.
 - Avoid exposing the cleanup endpoint publicly without a token even if you believe obscurity suffices.
+
+## Rate Limiting & Enumeration Hiding
+Pastry ships with lightweight, in‑memory (per‑process) rate limiting to slow automated abuse without adding external dependencies.
+
+| Aspect | Upload | Download |
+|--------|--------|----------|
+| Env toggle | `PASTRY_UPLOAD_RATE_LIMIT` / `PASTRY_UPLOAD_RATE_WINDOW_MS` | `PASTRY_DOWNLOAD_RATE_LIMIT` / `PASTRY_DOWNLOAD_RATE_WINDOW_MS` |
+| Scope | Per IP (uses `x-forwarded-for` first) | Per IP |
+| Defaults | 30 uploads / 60s | 120 downloads / 60s |
+| Headers | `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` | Same |
+
+Because limits are in memory they apply separately to each instance; in horizontal deployments you should:
+1. Keep these as a *soft* backstop.
+2. Add a shared store (Redis) or upstream gateway limits for a *hard* global cap.
+
+### Enumeration Hiding
+Setting `PASTRY_DOWNLOAD_ENUM_HIDE=true` causes the download endpoint to reply with a generic `404` for many failure modes (expired, wrong password, over limit, rate limited) making it harder to distinguish valid IDs. This trades some user clarity for reduced information leakage—enable only if enumeration pressure is a demonstrated concern.
+
+### Tuning Guidance
+- Keep windows >= 30s to avoid burst thrash; prefer raising limit vs. shrinking window for legitimate high‑volume use.
+- High‑throughput trusted networks can set very large limits or disable by patching the limiter.
+- Observe limiter headers to adjust thresholds before users encounter 429s.
 
 ## Roadmap
 - Chunked / resumable uploads
