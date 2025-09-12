@@ -45,7 +45,7 @@ Core capabilities shipped in this repository:
 
 - Drag & drop or file picker uploads
 - Per-file controls:
-  - Expiration presets (15m → 30d, server clamps at 30 days)
+  - Expiration presets (2m → 30d, server clamps at 30 days)
   - Optional download password (bcrypt hashed)
   - Max downloads (burn after N) or Unlimited toggle
 - Optional global policies:
