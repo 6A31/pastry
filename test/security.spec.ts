@@ -403,4 +403,65 @@ describe.sequential('Security validation', () => {
       altServer.kill('SIGTERM');
     }
   }, 50000);
+
+  test('cleanup toggle retains metadata when max downloads exceeded (retain mode)', async () => {
+    // Start isolated server with purge toggle = false (default)
+    const port = 5200 + Math.floor(Math.random()*50);
+    const BASE2 = `http://127.0.0.1:${port}`;
+    const env = { ...process.env, PORT: String(port), PASTRY_REQUIRE_FILE_PASSWORDS: 'true', PASTRY_LOG_LEVEL: 'error', PASTRY_CLEANUP_TOKEN: 'tok', CLEANUP_PURGE_DOWNLOADS_EXCEEDED: 'false', VITEST: '1' };
+    const proc = spawn('npm', ['run', 'dev', '--', '-p', String(port)], { env, stdio: 'inherit' });
+    try {
+      await waitForServer(BASE2, 30000);
+      const fd = new FormData();
+      fd.append('file', smallBlob, 'once.txt');
+      fd.append('expiresIn', '30d');
+      fd.append('downloadPassword', 'pw');
+      fd.append('maxDownloads', '1');
+      const up = await fetch(`${BASE2}/api/upload`, { method: 'POST', body: fd });
+      expect(up.status).toBe(200);
+      const { id } = await up.json();
+      // First download consumes allowance
+      const d1 = await fetch(`${BASE2}/api/download/${id}`, { method: 'POST', body: JSON.stringify({ password: 'pw' }), headers: { 'Content-Type': 'application/json' } });
+      expect(d1.status).toBe(200);
+      // Second should signal exceeded (410) but meta should still exist (not 404) after cleanup
+      const d2 = await fetch(`${BASE2}/api/download/${id}`, { method: 'POST', body: JSON.stringify({ password: 'pw' }), headers: { 'Content-Type': 'application/json' } });
+      expect([410,404]).toContain(d2.status); // allow 404 if implementation changes, but prefer 410
+      const clean = await fetch(`${BASE2}/api/cleanup`, { method: 'POST', headers: { authorization: 'Bearer tok' } });
+      expect(clean.status).toBe(200);
+      const meta = await fetch(`${BASE2}/api/file/${id}/meta`);
+      // In retain mode we expect metadata not deleted (so 200 or 410 if flagged) but NOT 404
+      expect([200,410]).toContain(meta.status);
+    } finally {
+      try { proc.kill('SIGTERM'); } catch {}
+    }
+  }, 40000);
+
+  test('cleanup toggle purges metadata when max downloads exceeded (purge mode)', async () => {
+    const port = 5300 + Math.floor(Math.random()*50);
+    const BASE3 = `http://127.0.0.1:${port}`;
+    const env = { ...process.env, PORT: String(port), PASTRY_REQUIRE_FILE_PASSWORDS: 'true', PASTRY_LOG_LEVEL: 'error', PASTRY_CLEANUP_TOKEN: 'tok2', CLEANUP_PURGE_DOWNLOADS_EXCEEDED: 'true', VITEST: '1' };
+    const proc = spawn('npm', ['run', 'dev', '--', '-p', String(port)], { env, stdio: 'inherit' });
+    try {
+      await waitForServer(BASE3, 30000);
+      const fd = new FormData();
+      fd.append('file', smallBlob, 'once2.txt');
+      fd.append('expiresIn', '30d');
+      fd.append('downloadPassword', 'pw');
+      fd.append('maxDownloads', '1');
+      const up = await fetch(`${BASE3}/api/upload`, { method: 'POST', body: fd });
+      expect(up.status).toBe(200);
+      const { id } = await up.json();
+      const d1 = await fetch(`${BASE3}/api/download/${id}`, { method: 'POST', body: JSON.stringify({ password: 'pw' }), headers: { 'Content-Type': 'application/json' } });
+      expect(d1.status).toBe(200);
+      const d2 = await fetch(`${BASE3}/api/download/${id}`, { method: 'POST', body: JSON.stringify({ password: 'pw' }), headers: { 'Content-Type': 'application/json' } });
+      expect([410,404]).toContain(d2.status);
+      const clean = await fetch(`${BASE3}/api/cleanup`, { method: 'POST', headers: { authorization: 'Bearer tok2' } });
+      expect(clean.status).toBe(200);
+      const meta = await fetch(`${BASE3}/api/file/${id}/meta`);
+      // In purge mode metadata should be gone
+      expect(meta.status).toBe(404);
+    } finally {
+      try { proc.kill('SIGTERM'); } catch {}
+    }
+  }, 40000);
 });

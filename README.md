@@ -115,6 +115,7 @@ Key environment variables (see `.env.example` for the full list):
 | `PASTRY_DOWNLOAD_RATE_LIMIT` | Max download attempts per IP per window. |
 | `PASTRY_DOWNLOAD_RATE_WINDOW_MS` | Window length for download limiting. |
 | `PASTRY_DOWNLOAD_ENUM_HIDE` | If `true`, many download failure modes return 404 to reduce enumeration signals. |
+| `CLEANUP_PURGE_DOWNLOADS_EXCEEDED` | If `true`, delete DB record immediately when max downloads reached (default keeps record until expiry). |
 
 ## Security Model
 | Control | Rationale |
@@ -178,6 +179,7 @@ However, for large scale you may prefer a single external cleanup job:
 - Always set `PASTRY_CLEANUP_TOKEN` if the service is network‑reachable; otherwise anyone could trigger aggressive cleanup bursts.
 - The internal loop does not use the token—it calls the handler directly—so forgetting to set it will not break automatic cleanup.
 - Avoid exposing the cleanup endpoint publicly without a token even if you believe obscurity suffices.
+ - Set `CLEANUP_PURGE_DOWNLOADS_EXCEEDED=false` (default) if you want clients to still receive a specific "download limit reached" response after the blob has been removed.
 
 ## Rate Limiting & Enumeration Hiding
 Pastry ships with lightweight, in‑memory (per‑process) rate limiting to slow automated abuse without adding external dependencies.

@@ -19,11 +19,18 @@ export async function POST(req: Request) {
   let removed = 0;
   const start = Date.now();
   const victims = await findExpiredOrOverLimit(5000);
+  const purgeExceeded = process.env.CLEANUP_PURGE_DOWNLOADS_EXCEEDED === 'true';
+  let blobsDeleted = 0;
+  let recordsDeleted = 0;
   for (const r of victims) {
-    try { await fs.unlink(path.join(storageDir, r.storedName)); } catch {}
-    try { await deleteFileRecord(r.id); } catch {}
-    removed++;
+    const exceeded = r.maxDownloads != null && r.downloadCount >= r.maxDownloads;
+    // Always remove blob if expired OR exceeded.
+    try { await fs.unlink(path.join(storageDir, r.storedName)); blobsDeleted++; } catch {}
+    if (!exceeded || purgeExceeded) {
+      try { await deleteFileRecord(r.id); recordsDeleted++; } catch {}
+      removed++;
+    }
   }
-  log.debug('Cleanup run complete', { removed, scanned: victims.length, ms: Date.now() - start });
-  return NextResponse.json({ removed, scanned: victims.length });
+  log.debug('Cleanup run complete', { removed: recordsDeleted, blobsDeleted, scanned: victims.length, purgedExceeded: purgeExceeded, ms: Date.now() - start });
+  return NextResponse.json({ removed: recordsDeleted, blobsDeleted, scanned: victims.length, purgedExceeded: purgeExceeded });
 }

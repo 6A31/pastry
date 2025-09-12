@@ -34,6 +34,7 @@ export default function UploadPanel({ adminOnly, requireFilePw, maxSize }: Uploa
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastNumberRef = useRef<number>(1); // remember previous numeric value when toggling unlimited
+  const [cardEntered, setCardEntered] = useState(false);
 
   const [sizeWarning, setSizeWarning] = useState<string | null>(null);
   const onFiles = useCallback((files: FileList | null) => {
@@ -60,7 +61,7 @@ export default function UploadPanel({ adminOnly, requireFilePw, maxSize }: Uploa
 
   const performUpload = useCallback(async () => {
     if (!selectedFile) return;
-    setBusy(true); setError(null); setResult(null);
+  setBusy(true); setError(null); setResult(null); setCardEntered(false);
     try {
       if (requireFilePw && !meta.downloadPassword) throw new Error('Password required by server policy');
       const form = new FormData();
@@ -77,6 +78,8 @@ export default function UploadPanel({ adminOnly, requireFilePw, maxSize }: Uploa
       }
   const json = await resp.json();
   setResult(json);
+  // trigger enter animation on next frame
+  requestAnimationFrame(() => setCardEntered(true));
   // Clear file selection so user cannot re-trigger accidentally
   setSelectedFile(null);
   if (inputRef.current) inputRef.current.value = '';
@@ -310,7 +313,12 @@ export default function UploadPanel({ adminOnly, requireFilePw, maxSize }: Uploa
         <p className="text-[11px] text-neutral-500">Max size: {formatBytes(maxSize)}</p>
       )}
       {result && (
-        <div className="rounded-md bg-neutral-900 p-4 text-xs ring-1 ring-neutral-700 space-y-2">
+        <div
+          className={cls(
+            'rounded-md bg-neutral-900 p-4 text-xs ring-1 ring-neutral-700 space-y-2 transition-all duration-300 ease-out will-change-transform',
+            cardEntered ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-[0.98]'
+          )}
+        >
           <p className="font-semibold text-neutral-200">Uploaded</p>
           <div className="flex flex-col gap-1">
             <span className="text-neutral-500">Share Link</span>
