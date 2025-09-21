@@ -72,7 +72,7 @@ export default function DownloadClient({ id }: { id: string }) {
           <p className="text-neutral-400">The file you are trying to access does not exist or has already been removed.</p>
         </div>
         <div className="text-center">
-          <a href="/" className="inline-flex items-center rounded-md bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-200 ring-1 ring-neutral-800 hover:bg-neutral-800">Go to upload page</a>
+          <a href="/" className="inline-flex items-center rounded-md bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-200 ring-1 ring-neutral-800 hover:bg-neutral-800">Upload own files</a>
         </div>
       </div>
     );
@@ -85,7 +85,7 @@ export default function DownloadClient({ id }: { id: string }) {
           <p className="text-neutral-400">This file has expired and is no longer available.</p>
         </div>
         <div className="text-center">
-          <a href="/" className="inline-flex items-center rounded-md bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-200 ring-1 ring-neutral-800 hover:bg-neutral-800">Go to upload page</a>
+          <a href="/" className="inline-flex items-center rounded-md bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-200 ring-1 ring-neutral-800 hover:bg-neutral-800">Upload own files</a>
         </div>
       </div>
     );
@@ -112,7 +112,7 @@ export default function DownloadClient({ id }: { id: string }) {
         <button disabled={downloading || (meta?.requiresPassword && !password)} onClick={handleDownload} className="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-brand-500 disabled:opacity-40 transition-colors">{downloading ? 'Preparing download…' : 'Download File'}</button>
       </div>
       <div className="pt-2 text-center">
-        <a href="/" className="inline-flex items-center rounded-md bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-200 ring-1 ring-neutral-800 hover:bg-neutral-800">Share your own file</a>
+        <a href="/" className="inline-flex items-center rounded-md bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-200 ring-1 ring-neutral-800 hover:bg-neutral-800">Upload own files</a>
       </div>
     </div>
   );
