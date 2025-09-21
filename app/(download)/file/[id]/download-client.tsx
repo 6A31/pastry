@@ -66,22 +66,26 @@ export default function DownloadClient({ id }: { id: string }) {
 
   if (statusCode === 404) {
     return (
-      <div className="mx-auto max-w-md space-y-4 rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800 text-sm">
-        <h1 className="text-lg font-semibold text-neutral-200">File Not Found</h1>
-  <p className="text-neutral-400">The file you are trying to access does not exist or has already been removed.</p>
-        <div className="pt-2">
-          <a href="/" className="inline-flex items-center rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-500">Upload a file</a>
+      <div className="mx-auto max-w-md space-y-4">
+        <div className="rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800 text-sm">
+          <h1 className="text-lg font-semibold text-neutral-200">File Not Found</h1>
+          <p className="text-neutral-400">The file you are trying to access does not exist or has already been removed.</p>
+        </div>
+        <div className="text-center">
+          <a href="/" className="inline-flex items-center rounded-md bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-200 ring-1 ring-neutral-800 hover:bg-neutral-800">Go to upload page</a>
         </div>
       </div>
     );
   }
   if (statusCode === 410) {
     return (
-      <div className="mx-auto max-w-md space-y-4 rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800 text-sm">
-        <h1 className="text-lg font-semibold text-neutral-200">File Expired</h1>
-        <p className="text-neutral-400">This file has expired and is no longer available.</p>
-        <div className="pt-2">
-          <a href="/" className="inline-flex items-center rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-500">Upload a file</a>
+      <div className="mx-auto max-w-md space-y-4">
+        <div className="rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800 text-sm">
+          <h1 className="text-lg font-semibold text-neutral-200">File Expired</h1>
+          <p className="text-neutral-400">This file has expired and is no longer available.</p>
+        </div>
+        <div className="text-center">
+          <a href="/" className="inline-flex items-center rounded-md bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-200 ring-1 ring-neutral-800 hover:bg-neutral-800">Go to upload page</a>
         </div>
       </div>
     );
@@ -90,12 +94,9 @@ export default function DownloadClient({ id }: { id: string }) {
   return (
     <div className="mx-auto max-w-md space-y-4">
       <div className="rounded-xl bg-neutral-900 p-6 ring-1 ring-neutral-800">
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h1 className="text-lg font-semibold text-neutral-200">Download File</h1>
-            <p className="mt-1 text-[11px] text-neutral-500">{meta?.requiresPassword ? 'This file is protected.' : 'Click download to retrieve the file.'}</p>
-          </div>
-          <a href="/" className="rounded-md bg-neutral-800 px-2 py-1 text-[11px] font-medium text-neutral-200 ring-1 ring-neutral-700 hover:bg-neutral-700">Upload</a>
+        <div className="mb-3">
+          <h1 className="text-lg font-semibold text-neutral-200">Download File</h1>
+          <p className="mt-1 text-[11px] text-neutral-500">{meta?.requiresPassword ? 'This file is protected.' : 'Click download to retrieve the file.'}</p>
         </div>
         <div className="space-y-3 text-sm">
           {meta?.requiresPassword && (
@@ -109,6 +110,9 @@ export default function DownloadClient({ id }: { id: string }) {
       </div>
       <div>
         <button disabled={downloading || (meta?.requiresPassword && !password)} onClick={handleDownload} className="w-full rounded-md bg-brand-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-brand-500 disabled:opacity-40 transition-colors">{downloading ? 'Preparing download…' : 'Download File'}</button>
+      </div>
+      <div className="pt-2 text-center">
+        <a href="/" className="inline-flex items-center rounded-md bg-neutral-900 px-3 py-2 text-xs font-medium text-neutral-200 ring-1 ring-neutral-800 hover:bg-neutral-800">Share your own file</a>
       </div>
     </div>
   );
