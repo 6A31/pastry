@@ -14,6 +14,8 @@
 </div>
 
 ---
+- For now i'm hosting a private instance at https://pastry.6A31.com
+
 
 ## Overview
 Pastry is a lightweight, self-hostable "pastebin for files" designed for fast, temporary hand-offs between devices or teammates. It purposely avoids accounts, large dependency stacks and heavy persistence logic. Files are short-lived, constrained, and always treated as untrusted.
